@@ -1,5 +1,6 @@
 #e al lui nix
 ./result
-
+result
+result-*
 #nu fortez dependency-uri
 ./flake.lock
