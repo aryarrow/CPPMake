@@ -23,10 +23,11 @@
 							pkgs.clang
 						];
 						buildPhase=''
+							pwd
+							find . -maxdepth 3 -type f
 							clang++ compile.cpp -o compile
 							clang++ install.cpp -o install
 							./compile
-							echo "HELLO FROM BUILDER"
 						'';
 						installPhase=''
 							./install $out

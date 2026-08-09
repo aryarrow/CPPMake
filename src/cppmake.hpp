@@ -1,168 +1,165 @@
+#include "./filetypes/universalfile.hpp"
+#include "commondata.hpp"
+#include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <stdexcept>
-#include <string>
 #include <vector>
 #include <iostream>
-#include <filesystem>
-#include "commondata.hpp"
-#include "installmgr.hpp"
-#include "installmgr.h"
-
-
-class sourceFile{
+class project {
 public:
-	std::string filename;
-	std::string outputName;
-	sourceFile(const std::string& fName,const std::string& fOutputName):filename(fName),outputName(fOutputName){}
-
-
-	std::vector<std::string> flags;
-};
-
-class executableFile{
-public:
-	std::string filename;
-	std::string fileOutputName;
-	executableFile(const std::string& inputName,const std::string& outputName):filename(inputName),fileOutputName(outputName){}
-
-
-	std::vector<std::string> flags;//ill let the user be able to just flags.push_back
-	std::vector<sourceFile> sources;
-};
-
-class project{
-public:
-	void add_executable(const executableFile& thefile){
-		executables.push_back(thefile);
+	void add_file(File* fileToAppend){
+		files.push_back(fileToAppend);
 	}
-
-	void set_compiler(const std::string& compiler){
-		this->compiler=compiler;
-	}
-
-	void preinstallAll(){
-		installation::checkPreinstallFolder();
-		if (!compiledFiles){//check if the files were compiled
-			throw std::runtime_error("Compilation was not done before installation");
+	
+	
+	//for now we handled compilation...but what about installation??
+	void compile_executable(File* file){
+		//it's 2:25 AM its pretty difficult to think if this is correct or not
+		compile_dependency_object_files(file);
+		
+		std::string objfiles;
+		for (const auto& dependency:file->dependencies){//adding up dependency output file paths 
+			objfiles+=dependency->data.outputPath.string();
+			objfiles+=" ";
 		}
-		installation::preinstallBinaries();
-		installation::preinstallHeaders(headersToInstall);
-		//for now theres no shared lib support due to my F-ING OPERATING system
-		//i really hope i dont have to send this code to the jury, cause im cooked by how many emoji coments i have
-	}
 
-	void compileAll(){
-		checkBuildDirs();
-		if (!compileDependencyObjectFiles(this->sources)){
-			throw std::runtime_error("Global dependency file compilation failed");
-		}//compile the global object files
-		for (const auto &executable:executables){
-			if (!compile_executable_file(executable)){
-				throw std::runtime_error("Something went wrong during compilation of "+executable.filename);
+		std::string command=compiler+" "
+			+add_up_flags(file)+" "
+			+objfiles+" "
+			+quoted(file->data.inputPath.string())+" "
+			+"-o " + quoted(file->data.outputPath.string());
+		if(!run_command(command)){
+			throw std::runtime_error("Failed to compile an executable:"+file->data.inputPath.string());
+		}
+		
+	}
+	void compile_object(File* objfile){
+		std::string flags=add_up_flags(objfile);
+		std::string command=compiler+" " //g++ 
+		+"-c "//hard coded but i dont care -c
+		+flags+" " //flags without any safety regard, again i dont care :D -Wall -Wextra
+		+quoted(objfile->data.inputPath.string())+" "//quoted file input name "./src/foo.hpp"
+		+"-o "//hard coded again
+		+quoted(objfile->data.outputPath.string());//quoted output file name "./obj/foo.o"
+
+		if(!run_command(command)){
+			throw std::runtime_error("Failed to compile object file:"+objfile->data.inputPath.string());
+		}
+
+	}
+	//let's do this easy, preinstall step
+	/*
+	 what does it need to do? 
+	 this is it for now, i'll add dynamic library support
+	 cp ./build/bin/* ./build/preinstall/
+	 copy the header files to their outputPath
+	 * */
+	
+	void preinstall(){
+		for (const auto& file:files){
+			switch (file->type) {
+				case(File::FileType::Executable):
+					copy_binary_preinstall(file);
+				break;
+				case(File::FileType::Object):
+				//tf is bro trying to do this is a static linked object 
+				break;
+				case(File::FileType::Header):
+					copy_header_preinsall(file);
+				break;
 			}
 		}
-		compiledFiles=true;
+      
 	}
-
-
-	bool compile_executable_file(const executableFile& execution){
-		if (!compileDependencyObjectFiles(execution.sources)){
-			return 0;
-		}
-		std::string universalFlags=addFlags(flags);
-		std::string command=compiler+" "+//clang++
-			execution.filename+" "//main.cpp for example
-			+getDependencyObjectOutputNames(this->sources)+" "//adds global object files
-			+getDependencyObjectOutputNames(execution.sources)+" "//adds local or private object files
-			+universalFlags//-Wall -Wextra for example
-			+addFlags(execution.flags)//addFlags accidentally adds another space at the end so its "-flag -luke "(with the space)
-			+"-o "+compilerVariables::buildDir+"/bin/"+execution.fileOutputName;//./build/bin/a.out? idk man
-		//this will basically form the command g++ main.cpp -Wall -Wextra(these are universal flags) -DhelloWorld(perFileFlag) -o main
-		//TODO:add object file support
-		return runcommand(command);
-	}
-
-	void addHeaderForInstall(const headerFile& headerToInstall){
-		headersToInstall.push_back(headerToInstall);
-	}//i dont need to explain what the function does, its simple enough to be understood
-
-	std::vector<std::string> flags;//flags that are applied to ALL files
-	std::vector<executableFile> executables;//.cpp or .c files that will be compiled to binary files like main.cpp->main
-	std::vector<sourceFile> sources;//source files that will get compiled to .o files example math.cpp->math.o
-	std::vector<headerFile> headersToInstall;//we dont talk about this one during the build phase ok? its install only stuff
-
-
-
 private:
-	bool compiledFiles=false;//this variable is for the install phase
 	std::string compiler="g++";
-
-	bool compileDependencyObjectFiles(const std::vector<sourceFile>& objfiles){
-		//recursive object file compilation
-		//now we hope the user didn't make the dependency second.o with third.o and the other way around to not create a paradox
-		for (const auto& source:objfiles){
-			std::string command;//let's attempt to form the command to compile
-			command=this->compiler+" "//clang++
-				+source.filename+" "
-				+addFlags(this->flags)+" "//universal flags like -Wall -Wextra or smh
-				+addFlags(source.flags)+" "//per obeject file flags like -fsanitize=address or idk -g maybe?
-				+"-c "//this time make sure they get turned into a damn object file
-				+"-o "+compilerVariables::buildDir+"/obj/"+source.outputName;//resulting source
-			if (!runcommand(command)){
-				return false;
-			}
+	std::vector<File*> files;
+	
+	void copy_header_preinsall(File* header){
+		namespace fs=std::filesystem;
+		if(header->type!=File::FileType::Header){
+			throw std::runtime_error("attemtped to copy non header file to header preinstall:"+header->data.inputPath.string());
 		}
-		return 1;
+
+		//this one is a fun one beacuse outputPath is designed to be in preinstall
+		fs::create_directories(header->data.outputPath.parent_path());
+		fs::copy_file(header->data.inputPath,
+				header->data.outputPath,
+				fs::copy_options::overwrite_existing
+		);
+		//yes it's that simple + copy_file has by default permissions of owner_read/write and read only for the rest :D 	
 	}
 
-	std::string getDependencyObjectOutputNames(const std::vector<sourceFile>& dependencies){
+	void copy_binary_preinstall(File* binary){
+		namespace fs=std::filesystem;//abusing this again
+		if (binary->type!=File::FileType::Executable){
+			throw std::runtime_error("attempted to copy non binary file to binaries preinstall:"+binary->data.inputPath.string());
+		}	
+		fs::path buildDir=fs::path(compilerVariables::buildDir);
+		fs::create_directories(//this syntax is weird i know basically if i have weirddir/bin/main
+			buildDir/"preinstall"/"bin"/
+			fs::path(binary->data.outputName).parent_path()
+		);
+		fs::copy_file(binary->data.outputPath,
+				buildDir/"preinstall"/"bin"/binary->data.outputName,
+				fs::copy_options::overwrite_existing
+				);//pretty straight forward...cp ./build/bin/main ./build/preinstall/bin/
+		fs::permissions(buildDir/"preinstall"/"bin"/binary->data.outputName, //copy_file revokes execute permission for some reason
+					fs::perms::owner_all |
+					fs::perms::group_read |
+					fs::perms::group_exec |
+					fs::perms::others_read |
+					fs::perms::others_exec
+			);	
+	}	
+
+	void compile_dependency_object_files(File* executable){
+		//executable->dependencies
+		for (const auto& dependency:executable->dependencies){
+			if(dependency->type==File::FileType::Object && should_compile(dependency)){
+				compile_object(dependency);
+			}
+		}
+	}
+	
+	std::string quoted(const std::string& string_to_quote){
+		return "\""+string_to_quote+"\"";
+	}
+
+	bool should_compile(File* objfile){
+		//this will be implemented later for the lock file system
+		return true;
+	}
+
+	std::string add_up_flags(File* file){
 		std::string result;
-		for (const auto& dependency:dependencies){
-			result+=compilerVariables::buildDir+"/obj/";
-			result+=dependency.outputName;
+		for (const auto& flag:file->data.flags){
+			result+=flag;
 			result+=" ";
+		}
+		if(!result.empty()){
+			result.pop_back();
 		}
 		return result;
 	}
-
-	std::string addFlags(const std::vector<std::string>& flags){
-		std::string addedUp=" ";
-		for (const auto& flag : flags){
-			addedUp+=flag;
-			addedUp+=" ";
-		}
-		return addedUp;
-	}
-
-	bool runcommand(const std::string& command){
+	bool run_command(const std::string& command){
 		std::cout<<command<<"\n";
-		return (system(command.c_str())==0);
+		//return (std::system(command.c_str()));
+		return true;
 	}
-	void checkBuildDirs(){
-		namespace fs=std::filesystem;
-		fs::create_directories(fs::path(compilerVariables::buildDir)/"obj");
-		fs::create_directories(fs::path(compilerVariables::buildDir)/"bin");
-	}//makes sure the buildDir directories exist ready for use	
 };
-template <class T> void add_flag(T& Object,const std::string& flag){
-	Object.flags.push_back(flag);
-}
 
-template <class T> void add_library(T& Object,const std::string& libName){
-	Object.flags.push_back("-l"+libName);//i'll not do dependency handling because this project will integrate nix into it
-}
+void install() {//so straight forward it literally copies the preinstall directory :D
+    namespace fs = std::filesystem;
+    fs::path preinstall =
+        fs::path(compilerVariables::buildDir) / "preinstall";
+    fs::path install =
+        fs::path(compilerVariables::installDir);
 
-template <class T>
-void add_library_directory(T& object, const std::string& path) {
-	object.flags.push_back("-L" + path);
-}
-
-template <class T>
-void add_include_directory(T& object, const std::string& path) {
-	object.flags.push_back("-I" + path);
-}
-
-template <class T>
-void add_source_file(T& object,const sourceFile& srcfile){
-	object.sources.push_back(srcfile);
+    fs::copy(
+        preinstall,
+        install,
+        fs::copy_options::recursive
+    );
 }
