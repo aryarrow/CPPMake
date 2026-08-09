@@ -11,11 +11,31 @@ public:
 	void add_file(File* fileToAppend){
 		files.push_back(fileToAppend);
 	}
-	
-	
+
+	void set_compiler(std::string compiler){//someday ill add a Compilers class
+		this->compiler=compiler;
+	}
+
+	void compile_executables(){
+		for (const auto& file:files) {
+			if (!file){
+				throw std::runtime_error("Found nullptr while attempting to compile executables");
+			}
+			if (file->type==File::FileType::Executable){
+				
+			}
+		}
+	}
+
 	//for now we handled compilation...but what about installation??
 	void compile_executable(File* file){
 		//it's 2:25 AM its pretty difficult to think if this is correct or not
+		if (!file){
+			throw std::runtime_error("Nullptr or null was passed for compilation, you sure you wanted to do that?");
+		}
+		if (file->type!=File::FileType::Executable){
+			throw std::runtime_error("Passed a non executable for executable compilation...");
+		}
 		compile_dependency_object_files(file);
 		
 		std::string objfiles;
@@ -34,20 +54,7 @@ public:
 		}
 		
 	}
-	void compile_object(File* objfile){
-		std::string flags=add_up_flags(objfile);
-		std::string command=compiler+" " //g++ 
-		+"-c "//hard coded but i dont care -c
-		+flags+" " //flags without any safety regard, again i dont care :D -Wall -Wextra
-		+quoted(objfile->data.inputPath.string())+" "//quoted file input name "./src/foo.hpp"
-		+"-o "//hard coded again
-		+quoted(objfile->data.outputPath.string());//quoted output file name "./obj/foo.o"
-
-		if(!run_command(command)){
-			throw std::runtime_error("Failed to compile object file:"+objfile->data.inputPath.string());
-		}
-
-	}
+	
 	//let's do this easy, preinstall step
 	/*
 	 what does it need to do? 
@@ -76,6 +83,21 @@ private:
 	std::string compiler="g++";
 	std::vector<File*> files;
 	
+	void compile_object(File* objfile){
+		std::string flags=add_up_flags(objfile);
+		std::string command=compiler+" " //g++ 
+		+"-c "//hard coded but i dont care -c
+		+flags+" " //flags without any safety regard, again i dont care :D -Wall -Wextra
+		+quoted(objfile->data.inputPath.string())+" "//quoted file input name "./src/foo.hpp"
+		+"-o "//hard coded again
+		+quoted(objfile->data.outputPath.string());//quoted output file name "./obj/foo.o"
+
+		if(!run_command(command)){
+			throw std::runtime_error("Failed to compile object file:"+objfile->data.inputPath.string());
+		}
+
+	}
+
 	void copy_header_preinsall(File* header){
 		namespace fs=std::filesystem;
 		if(header->type!=File::FileType::Header){

@@ -27,6 +27,19 @@ public:
 		data.outputName=outputName;
 		generate_output_path();
 	}
+
+	void add_flag(const std::string& flag){
+		this->data.flags.push_back(flag);
+	}
+	void add_library(const std::string& library){
+		this->data.flags.push_back("-l"+library);
+	}
+	void add_library_directory(const std::filesystem::path& library){
+		this->data.flags.push_back("-L"+library.string());
+	}
+	void add_include_directory(const std::filesystem::path& path){
+		this->data.flags.push_back("-I"+path.string());
+	}
 private:
 
 	void generate_output_path(){

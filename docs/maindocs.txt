@@ -1,0 +1,68 @@
+=================
+	CPPMake
+=================
+-------
+Huh! you actually took a look at the documents!
+Thank you!
+
+Back to the serious work now :D
+--------
+So how do you, the developer, use this thing?
+
+Well there are 2 classes that are important: "project" and "File"
+
+File is implemented with a enum class of FileType which can be one of the 3:
+-"Executable", you assign the source file to this, the flags and the dependencies
+Wait "dependencies"? It's not packages sadly, i didn't make a package manager here,
+dependencies in this case mean that you compile an Object file into a .o and add the dependency
+
+-"Object", ah makes sense now doesnt it? you assign the values, the flags and it'll compile it with the -c flag 
+"compile and assemble but do not link" also even tho this does have the std::vector<File*> dependencies;
+dont use it because they're ignored... just add them to the executable instead.
+
+-"Header", this one is simple, it just prepares a headear in a preinstall folder, for it to be installed in the installDir/include
+warning tho, it doesn't link the Header to any file it just installs it :D
+
+
+How do i ACTUALLY use the File class?
+
+Simple answer, the constructor. File(inputPath,outputName,File::FileType).
+Example? File("./src/main.cpp","main",File::FileType::Executable);
+The result in the build folder will be ./build/bin/main after running project.compile();
+
+Also the File class has a few functions:
+	-add_dependency(File* file); adds an object file dependency for Executables
+	-add_flag(); for executable files and object files like -Wall or -Wextra or -g whatever you need
+	-add_library(const std::string& library); basically this does add_flag("-l"+library) :D
+	-add_library_path(const std::filesystem::path& library); this is basically add_flag("-L"+library.string())
+	-add_include_directory(const std::filesystem::path& path); simple again add_flag("-I"+path.string());
+
+
+OPTIONAL:The File class has support for nested files for example you can see in the compile.cpp of this project (CPPMake)
+File("./src/filetypes/universalfile.hpp", "filetypes/universalfile.hpp",File::FileType::Header); and the result in the preinstall and install will be ./build/preinstall/include/filetypes/universalfile.hpp
+
+----------------------------
+Okay moving on to the project class.
+This one has a few important functions
+
+-add_file(File* fileToAppend); pretty straight forward isnt it?
+Adds the file to an internal vector of the project class for compilation if its an Executable and for installation Header,
+object files dont do anything here
+
+-void compile_executable(File* file); it compiles a file of type Executable
+-void compile_executables(); plural makes a big difference right? Compiles ALL files of type Executable; from the vector of File*
+
+-void preinstall(); prepares the preinstall folder for the install command
+
+-void install(); this one is not inside the class project BUT it copies whatever is in ./build/preinstall into installDir
+
+---------------
+Probably have seen me mentioning installDir and buildDir...what are they?
+they are part of a global namespace called compilerVariables,
+sounds big until you realize it contains only two things,
+the installDir and buildDir strings,
+by default installDir="./installed" and buildDir="./build", 
+but you can change them because they're global for example
+installDir="/usr" for "/usr/bin" and "/usr/include"
+where the headers and binaries will be installed,
+you know better what you want to do :D
