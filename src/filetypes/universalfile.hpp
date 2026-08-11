@@ -9,8 +9,8 @@ public:
 	enum class FileType {
 		Executable,
 		Object,
-		Header //this is a preinstall/install feature it doesnt do anything compile time or link time
-		
+		Header, //this is a preinstall/install feature it doesnt do anything compile time or link time
+		Sharedlib
 	};
 	FileType type;
 	filedata data;
@@ -59,5 +59,4 @@ private:
 			break;
 		}
 	}
-
 };

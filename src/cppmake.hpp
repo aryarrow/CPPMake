@@ -22,7 +22,7 @@ public:
 				throw std::runtime_error("Found nullptr while attempting to compile executables");
 			}
 			if (file->type==File::FileType::Executable){
-				
+				compile_executable(file);
 			}
 		}
 	}
@@ -43,7 +43,9 @@ public:
 			objfiles+=dependency->data.outputPath.string();
 			objfiles+=" ";
 		}
-
+		if(!should_compile(file)){
+			return;
+		}
 		std::string command=compiler+" "
 			+add_up_flags(file)+" "
 			+objfiles+" "
