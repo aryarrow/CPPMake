@@ -6,8 +6,10 @@
 #include <stdexcept>
 #include <vector>
 #include <iostream>
+#include <csignal>
 class project {
 public:
+	//TODO BEFORE PRODUCTION:whatever lines have a "//debug" REMOVE them
 	void add_file(File* fileToAppend){
 		files.push_back(fileToAppend);
 	}
@@ -30,14 +32,18 @@ public:
 	//for now we handled compilation...but what about installation??
 	void compile_executable(File* file){
 		//it's 2:25 AM its pretty difficult to think if this is correct or not
+		//and after that i forgot to acutally create the directories where the f-ing executable is built
 		if (!file){
 			throw std::runtime_error("Nullptr or null was passed for compilation, you sure you wanted to do that?");
 		}
+
+		std::filesystem::create_directories(file->data.outputPath.parent_path());
+		
 		if (file->type!=File::FileType::Executable){
 			throw std::runtime_error("Passed a non executable for executable compilation...");
 		}
-		compile_dependency_object_files(file);
 		
+		compile_dependency_object_files(file);
 		std::string objfiles;
 		for (const auto& dependency:file->dependencies){//adding up dependency output file paths 
 			objfiles+=dependency->data.outputPath.string();
@@ -83,12 +89,11 @@ public:
 	}
 private:
 	std::string compiler="g++";
-	//TODO:add a compiler class with enum class, flags, etc
-	//this is a c/c++ only project but i wanna add zig
-	//TODO:consult with devs if i should add zig
 	std::vector<File*> files;
 	
 	void compile_object(File* objfile){
+		//oops forgot to add this one
+		std::filesystem::create_directories(objfile->data.outputPath.parent_path());
 		std::string flags=add_up_flags(objfile);
 		std::string command=compiler+" " //g++ 
 		+"-c "//hard coded but i dont care -c
@@ -96,7 +101,7 @@ private:
 		+quoted(objfile->data.inputPath.string())+" "//quoted file input name "./src/foo.hpp"
 		+"-o "//hard coded again
 		+quoted(objfile->data.outputPath.string());//quoted output file name "./obj/foo.o"
-
+		
 		if(!run_command(command)){
 			throw std::runtime_error("Failed to compile object file:"+objfile->data.inputPath.string());
 		}
@@ -155,7 +160,6 @@ private:
 	}
 
 	bool should_compile(File* objfile){
-		//TODO:once the lockfile system exists, implement this
 		//this will be implemented later for the lock file system
 		return true;
 	}
@@ -172,9 +176,10 @@ private:
 		return result;
 	}
 	bool run_command(const std::string& command){
-		//TODO:create a system call API that
 		std::cout<<command<<"\n";
-		return (std::system(command.c_str())==0);
+		int result=std::system(command.c_str());
+		//In the last push i forgot to switch it from debugging to production :D
+		return result==0;
 		//return true;
 	}
 };
