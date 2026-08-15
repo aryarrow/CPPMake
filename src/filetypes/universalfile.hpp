@@ -1,8 +1,10 @@
+#pragma once
 #include "filedata.hpp"
 #include <filesystem>
 #include <string>
 #include <vector>
 #include "../commondata.hpp"
+#include "sha256.hpp"
 
 class File{
 public:
@@ -14,7 +16,7 @@ public:
 	};
 	FileType type;
 	filedata data;
-
+	std::string sha256sum;
 	std::vector<File*> dependencies;//this is for the Executable class
 	
 	void add_dependency(File* file){//its just a pointer, i dont have to make it const or anything
@@ -22,9 +24,13 @@ public:
 	}
 
 	File(std::filesystem::path inputPath, std::string outputName,FileType fType){
+		//
 		type=fType;
 		data.inputPath=inputPath;
 		data.outputName=outputName;
+
+		SHA256::SHA256 hasher;
+		sha256sum=hasher.SHA256_file(data.inputPath);
 		generate_output_path();
 	}
 
@@ -40,11 +46,41 @@ public:
 	void add_include_directory(const std::filesystem::path& path){
 		this->data.flags.push_back("-I"+path.string());
 	}
+	
+	bool operator==(const File& other) const {
+		if (other.type!=this->type){
+			return false;
+		}
+		if (this->data!=other.data){
+			return false;
+		}
+		if (this->dependencies.size()!=other.dependencies.size()){
+			return false;//this is not actually for comparison its for the for loop to not seg fault :D
+		}
+		//compare the hahses
+		if (this->sha256sum!=other.sha256sum) {
+			return false;
+		}
+		//compare the dependencies
+		for (std::size_t i=0;i<this->dependencies.size();++i){
+			if (*this->dependencies[i]!=*other.dependencies[i]){
+				return false;
+			}
+		}
+		return true;
+	}
+	bool operator!=(const File& other) const {
+		if (!(*this==other)){
+			return true;
+		}
+		return false;
+	}
+
 private:
 
 	void generate_output_path(){
 		namespace fs=std::filesystem;
-		switch (type) {
+		switch (this->type) {
 			case FileType::Executable:
 				data.outputPath=fs::path(compilerVariables::buildDir)/"bin"/data.outputName;
 			break;

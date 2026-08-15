@@ -83,6 +83,9 @@ public:
 	}
 private:
 	std::string compiler="g++";
+	//TODO:add a compiler class with enum class, flags, etc
+	//this is a c/c++ only project but i wanna add zig
+	//TODO:consult with devs if i should add zig
 	std::vector<File*> files;
 	
 	void compile_object(File* objfile){
@@ -152,6 +155,7 @@ private:
 	}
 
 	bool should_compile(File* objfile){
+		//TODO:once the lockfile system exists, implement this
 		//this will be implemented later for the lock file system
 		return true;
 	}
@@ -168,9 +172,10 @@ private:
 		return result;
 	}
 	bool run_command(const std::string& command){
+		//TODO:create a system call API that
 		std::cout<<command<<"\n";
-		//return (std::system(command.c_str()));
-		return true;
+		return (std::system(command.c_str())==0);
+		//return true;
 	}
 };
 
