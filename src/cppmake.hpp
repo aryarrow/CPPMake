@@ -168,9 +168,10 @@ private:
 		return result;
 	}
 	bool run_command(const std::string& command){
-		std::cout<<command<<"\n";
-		//return (std::system(command.c_str()));
-		return true;
+		//std::cout<<command<<"\n";
+		//In the last push i forgot to switch it from debugging to production :D
+		return (std::system(command.c_str()));
+		//return true;
 	}
 };
 
