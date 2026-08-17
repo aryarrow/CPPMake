@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+
+//i dont think theres anything other to do here
 class filedata {
 public:
 	std::filesystem::path inputPath;

@@ -7,9 +7,19 @@
 #include <vector>
 #include <iostream>
 #include <csignal>
+#include "lockfilemgr.cpp"
+
 class project {
 public:
-	//TODO BEFORE PRODUCTION:whatever lines have a "//debug" REMOVE them
+	project(){
+		std::string lockfile_name="incremental.lock";
+		namespace fs=std::filesystem;
+		if (fs::exists(lockfile_name)){
+			lockfilemgr.update_variables_from_lockfile();
+		}
+	}
+
+
 	void add_file(File* fileToAppend){
 		files.push_back(fileToAppend);
 	}
@@ -27,6 +37,7 @@ public:
 				compile_executable(file);
 			}
 		}
+		lockfilemgr.write_lockfile_changes();
 	}
 
 	//for now we handled compilation...but what about installation??
@@ -60,7 +71,8 @@ public:
 		if(!run_command(command)){
 			throw std::runtime_error("Failed to compile an executable:"+file->data.inputPath.string());
 		}
-		
+		lockfilemgr.update_file(*file);
+
 	}
 	
 	//let's do this easy, preinstall step
@@ -87,10 +99,11 @@ public:
 		}
       
 	}
+	lockfile_mgr lockfilemgr;
 private:
 	std::string compiler="g++";
 	std::vector<File*> files;
-	
+
 	void compile_object(File* objfile){
 		//oops forgot to add this one
 		std::filesystem::create_directories(objfile->data.outputPath.parent_path());
@@ -105,7 +118,7 @@ private:
 		if(!run_command(command)){
 			throw std::runtime_error("Failed to compile object file:"+objfile->data.inputPath.string());
 		}
-
+		lockfilemgr.update_file(*objfile);
 	}
 
 	void copy_header_preinsall(File* header){
@@ -161,6 +174,14 @@ private:
 
 	bool should_compile(File* objfile){
 		//this will be implemented later for the lock file system
+		std::string inputName=objfile->data.inputPath;
+		//basically checks if it exists AND is equal inside the dear lockfilemgr
+		if (lockfilemgr.file_exists(inputName)){
+			if (*objfile==*lockfilemgr.files.at(inputName)){
+				return false;
+			}
+		}
+
 		return true;
 	}
 

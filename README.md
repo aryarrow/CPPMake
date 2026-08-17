@@ -17,6 +17,7 @@ The api is small it'll probably only take 10 minutes to read and its a simple an
 For those who want to contribute, the project is still at it's birth.
 You can easily contribute to this project on small or bigger things that are not assigned in the issues tab, even tho they're features, not issues.
 
-You write in a small file named "changes.txt" what files you changed, this makes it easier for me to review your code.
+You write in a small file named "./docs/changes.txt" what you have changed (how it works basically), this makes it easier for me to review your code.
 Who knows maybe you have an idea i haven't seen at all, may that be a refactor, a bug fix, a feature.
 
+Before attempting to contribute please read all the documentations in docs, they're handy when you wanna lean how this thing works

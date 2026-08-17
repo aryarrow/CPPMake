@@ -1,5 +1,7 @@
 #pragma once
 #include <ostream>
+
+//NOTE:whatever you implement in Token, please implement in the ostream& operator<< below
 enum class Token{
 	word,// example: quotation, word, quotaion = "hi"
 	number,

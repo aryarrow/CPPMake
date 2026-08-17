@@ -1,3 +1,5 @@
+#pragma once
+#include <algorithm>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -11,23 +13,25 @@
 #include "variables.cpp"
 #include "tokenizer.cpp"
 
+//TODO:create an operator<<(variable variab); which will write variab's contents into the lockfile
 
-inline void debug_break() {
-    asm volatile("int3");
-}//i looked online for how to make a breakpoint and this is what i got... im glad
 
 
 class lockfile{
 public:
-	//BIG TODO:change all size_t to references or pointers so i dont have to literally return size_t every time
 	std::unique_ptr<variable> mainVar;
-	Tokenizer lockfiletokens{"flake.lock"};
+	Tokenizer lockfiletokens{"incremental.lock"};
 	
 	void parse_lock_file(){
-		lockfiletokens.print_all_tokens(); //TODO BEFORE PRODUCION:Remove this, makes ouput ugly
 		//parse_brackets is next
+		//checks if token_id.size() and tokens.size() are equal
 		check_token_sync();
-		if (!(parse_brackets(0,mainVar)>=lockfiletokens.tokens.size())){
+		//create the i reference
+		size_t i=0;
+		//parse the main brackets
+		mainVar=parse_brackets(i);
+		//throw an error if it didnt reach the end 
+		if (!(i>=lockfiletokens.tokens.size())){
 			throw std::runtime_error("We have finished parsing...but something isnt right, we parsed but we didnt reach EOF");
 		}
 	}
@@ -38,21 +42,19 @@ public:
 		}
 	}
 
-	size_t parse_brackets(size_t starting_point,std::unique_ptr<variable>& parsing_object){
-		//TODO:make this function return the size_t index where it leaves it at
-		//TODO:force commas between values
-		check_i(starting_point);
-		if (lockfiletokens.token_id[starting_point]!=Token::open_curly_bracket){
+	std::unique_ptr<variable> parse_brackets(size_t& i){
+		std::unique_ptr<variable> parsing_object=std::make_unique<variable>(variable(variable::object{}));
+
+		check_i(i);
+		if (lockfiletokens.token_id[i]!=Token::open_curly_bracket){
 			//this can happen if the user forgets the root brackets
 			throw std::runtime_error("Parser error, starting_point is not a curly bracket");
 		}
 
-		starting_point++;
-		check_i(starting_point);
-		size_t i=starting_point;
+		i++;
+		check_i(i);
 
 		while (i<lockfiletokens.tokens.size()){
-			std::cout<<"i:"<<i<<"\n";
 			//first we check if its a quote for a variable or an ending
 			if (!(lockfiletokens.token_id[i]==Token::quote ||
 				lockfiletokens.token_id[i]==Token::closed_curly_bracket 
@@ -69,11 +71,12 @@ public:
 			//and now we check if we find the closing closing bracket
 			else if (lockfiletokens.token_id[i]==Token::closed_curly_bracket){
 				i++;
-				return i;
+				return std::move(parsing_object);
 			}
 		}
 		throw std::runtime_error("EOF reached, but bracket never closed");
-		return 0;
+		return nullptr;//this is impossible to reach due to to the throw runtime_error 
+		//i added this because the compiler would give the user a warning and not compile the compiler that used the lib
 	}
 
 	lockfile()//lockfiletokens(lockfilename){
@@ -99,9 +102,6 @@ private:
 	}
 
 	void parse_value(size_t& i,std::unique_ptr<variable>& parsing_object,std::string varname){
-		//TODO:add support for the rest of types found in variable class
-		//Said variables that dont have support are object,list
-		
 		//so we check if the value is a string, list, int or bool first 
 		check_set(parsing_object);
 		check_i(i);
@@ -130,11 +130,12 @@ private:
 			//it's a list then	
 			variable::list ListValue=parse_list_variable(i);
 			obj[varname]=std::make_unique<variable>(std::move(ListValue));
+		} else if (lockfiletokens.token_id[i]==Token::open_curly_bracket){
+			obj[varname]=parse_brackets(i);//this returns the unique_ptr directly
 		}
 	}
 
 	variable::list parse_list_variable(size_t& i){
-		//TODO:make this parse only number,string and bool
 		i++;//so the first element is [ we jump over that
 		check_i(i);
 		variable::list outputList{};
@@ -202,10 +203,6 @@ private:
 	}
 
 	std::string parse_string(size_t& i){
-		//TODO BEFORE PRODUCION:Remove these couts before production, they're ugly in the terminal
-		std::cout<<"Tokens[i]:"<<lockfiletokens.tokens[i]<<"\n";
-		std::cout<<"Tokens[i+1]:"<<lockfiletokens.tokens[i+1]<<"\n";
-		std::cout<<"Tokens[i+2]:"<<lockfiletokens.tokens[i+2]<<"\n";
 		if (i+2>=lockfiletokens.tokens.size() || lockfiletokens.token_id[i+2]!=Token::quote){
 			throw std::runtime_error("we detected quote for starting the string but it never ends");
 		}

@@ -10,6 +10,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include "../breakpoint.cpp"
+//thank god this works
+//TODO:make the constructor do the work of hashing
 namespace SHA256{
 	struct sha256_ctx {
 		uint32_t state[8];

@@ -8,6 +8,8 @@
 
 class File{
 public:
+	//TODO:add a default constructor
+	//TODO:add an operator=
 	enum class FileType {
 		Executable,
 		Object,
@@ -18,13 +20,14 @@ public:
 	filedata data;
 	std::string sha256sum;
 	std::vector<File*> dependencies;//this is for the Executable class
-	
+	//TODO:transform instances of File* to shared_ptr for a better ecosystem 
+
+
 	void add_dependency(File* file){//its just a pointer, i dont have to make it const or anything
 		dependencies.push_back(file);
 	}
 
 	File(std::filesystem::path inputPath, std::string outputName,FileType fType){
-		//
 		type=fType;
 		data.inputPath=inputPath;
 		data.outputName=outputName;
@@ -76,7 +79,6 @@ public:
 		return false;
 	}
 
-private:
 
 	void generate_output_path(){
 		namespace fs=std::filesystem;
@@ -92,6 +94,11 @@ private:
 					"preinstall"/ //preintall
 					"include"/ //include
 					data.outputName; // mylib/something.h
+			break;
+			case FileType::Sharedlib:
+				data.outputPath=fs::path(compilerVariables::buildDir)/
+					"lib"/
+					data.outputName;
 			break;
 		}
 	}
