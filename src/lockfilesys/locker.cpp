@@ -71,7 +71,7 @@ public:
 			//and now we check if we find the closing closing bracket
 			else if (lockfiletokens.token_id[i]==Token::closed_curly_bracket){
 				i++;
-				return std::move(parsing_object);
+				return parsing_object;
 			}
 		}
 		throw std::runtime_error("EOF reached, but bracket never closed");

@@ -158,8 +158,8 @@ public:
 			case File::FileType::Sharedlib:
 				lockfile_stream<<"Sharedlib";
 			break;
-			deafult:
-				throw std::logic_error("You forgot to implement a type inside the lockfile Writer");
+			default:
+				throw std::logic_error("lockfile_writer:FileType was not implemented");
 			break;
 		}
 		lockfile_stream<<"\"\n";

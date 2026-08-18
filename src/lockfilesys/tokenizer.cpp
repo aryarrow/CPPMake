@@ -15,7 +15,7 @@ public:
 	std::vector<Token> token_id;
 
 	void print_all_tokens(){
-		for (int i=0;i<tokens.size();++i){
+		for (size_t i=0;i<tokens.size();++i){
 			std::cout<<tokens[i]<<":"<<token_id[i]<<"\n";
 		}
 	}

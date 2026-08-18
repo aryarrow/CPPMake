@@ -1,0 +1,65 @@
+Oh you went far if you're here
+This documentation is only for devs who want to use or want to contribute to the lockfile system
+
+So here is all you need to know
+./src/lockfilemgr.cpp
+what does it do?
+Well it contains 3 classes lockfile_reader, lockfile_writer and lockfile_mgr
+
+lockfile_writer...why does it exist?
+this exists only for one purpose to write the File class's data inside of the lock file
+warning:the constructor opens the lockfile and erases it! so when creating a lockfile_writer make sure to write everything you need
+UNLESS you explicitly want bugs in your code or the file erased
+warning:the deconstructor is the one that ends the file with a } so dont try to parse the lockfile before finishing the write or you'll get a very nice parsing error
+usage: lockfile_writer<<File*;
+
+lockfile_reader, also why?
+This is a wrapper of the lockfile class thats in ./src/lockfilesys/locker.cpp
+What does it do? Well it's meant to construct File* classes from the lockfile
+
+lockfile_mgr, why?
+This is the wrapper of lockfile_reader and lockfile_writer
+basically what it does it has a hash map of shared_ptr of File
+and a vector of shared_ptr of File object_dummies (DONT USE THIS ONE)
+These are the main functions
+	update_file();//Updates a file inside of the hash map thats inside this class
+	file_exists(const std::string& filenaeme);//Checks if filename exists inside the hash map
+	update_variables_from_lockfile();//This one reads the lock file and updates the hash map
+	write_lockfile_changes();//This is self explained... basically takes the files that
+
+Now we go deeper into the ice berg...below water
+Depth is 50 meters below sea level:D
+./src/lockfilesys/locker.cpp
+Very important one, misleading name...i know but this is the lock file PARSER
+How to use:just create the thing with the default constructor and just call the parse_lock_file()
+Sadly at the moment you cant use the lock file parser for any other file name other than incremental.lock...
+For now tokenizer doesnt let you do that (For the next update i have exactly that in mind)
+
+./src/lockfilesys/tokenizer.cpp + ./src/lockfilesys/tokens.cpp
+This one i recomend you actually read the code tokens.cpp only has an enum class of tokens and tokenizer.cpp
+And tokenizer.cpp is just a lexer... literally its that simple take a look at the code.
+The only thing it does it literally transforms the file with the tokens inside of the enum class inside tokens.cpp
+Usage:tokenizer tokens{const std::string& filename};
+
+./src/lockfilesys/variable.cpp
+Okay this one is complicated for me to explain because the code is also pretty complicated.
+How does it work?
+It has a 4 important variables inside;
+using list=std::vector<std::unique_ptr<variable>>;
+using object=std::unordered_map<std::string,std::unique_ptr<variable>>;
+using value_type=std::variant<int,bool,std::string,list,object>;
+and the last one, value_type value;
+This also has 3 functions that are important (im so sorry if the docs look like the one's from cppreference.com :D)
+
+std::unique_ptr<variable>& get(const std::string& tofind); //finds a value SPECIFICALLY for object like imagine value[tofind]
+
+template<class T> T& as(); // i know, templates are scary, but its simple in this case you get the variable class and say variable.as<std::string>(); for example
+
+std::string get_variable_type() const; //very simple function it just returns "int","bool","string","list","object" or "unknown"(this one should have been std::logic_error :D)
+
+and the constructor variable(value_type construct_value):value(std::move(construct_value)){}
+
+Phew you escaped now checks the other docs they're WAY easier than this one :D
+Have fun! This project was meant to make things simpler not more complicated
+
+Quick warning...if you wanna use something from here i dont quite recomend it yet... wait till next update trust me

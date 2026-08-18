@@ -79,7 +79,7 @@ public:
 	/*
 	 what does it need to do? 
 	 this is it for now, i'll add dynamic library support
-	 cp ./build/bin/* ./build/preinstall/
+	 cp ./build/bin/ *   ./build/preinstall/
 	 copy the header files to their outputPath
 	 * */
 	
@@ -94,6 +94,9 @@ public:
 				break;
 				case(File::FileType::Header):
 					copy_header_preinsall(file);
+				break;
+				default:
+					throw std::logic_error("Preinstall:Filetype was not implemented yet");
 				break;
 			}
 		}

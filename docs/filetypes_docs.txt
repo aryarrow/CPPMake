@@ -1,0 +1,55 @@
+Ah you stepped into the right place
+
+This doc is pretty simple follow along
+
+Only 3 files, lets go!
+
+keep in mind->namespace fs=std::filesystem;
+
+src/filetypes/filedata.hpp
+I can literally paste the code here you can go ahead and take a look
+Pseudo c++ code of the file below
+filedata {
+	fs::path inputPath;
+	std::string outputName;
+	fs::path outputPath;//unless you're making your own File class implementation dont touch this one
+	std::vector<std::string> flags;//like if you have an executable main which you want to compile with -Wall
+	bool operator==;
+	bool operator!=;//this one literally checks if its NOT equal !(*this==other) :D
+};
+
+src/filetypes/sha256.cpp this one is a good one, took inspiration from GNU LIB and made it into a class :D
+what do i do with this one?
+has a few functions in that class you might wanna try out:
+remember the class is under the namespace of SHA256 and its called SHA256...
+automatic use:
+std::string SHA256_file(fs::path filePath); reads the file in filePath and then makes a sha256 of its contents
+//manual use
+void update_string();
+void update_file(fs::path filePath);
+std::vector<uint8_t> finalize();
+std::string stringifyDigest(std::vector<uint8_t> digest); is important especially for stringifyDigest(finalize());  
+void reset();//resets the SHA256 for the next use but you almost never use it more than once 
+It does have another few functions but they either use uint8_t* or they're internal guts
+
+src/filetypes/universalfile.hpp
+This one i REALLY recomend looking at the actual code because i might be explaining it wrong.
+Or it might be depricated because it always changes
+important things...
+the class File {
+	enum class FileType {
+		Executable,
+		Object,
+		Header,//its for preinstall and install it doesn't link it...if you want to link it just do add_include_directory
+		Sharedlib//not implemented yet...wait till next update for this one :D
+	};
+
+	//the void's of the funcion all souls have a slight void in them no :)?
+
+	void add_flag();//pass a string to this one and magically it'll be added to this->data.flags 
+	void add_something() //let that be add_include_directory, add_library, add_library_directory... they just calls add_flag :D
+	
+	//operators
+	operator==
+	operator!=
+};
