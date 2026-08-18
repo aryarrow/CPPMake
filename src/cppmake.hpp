@@ -177,7 +177,7 @@ private:
 
 	bool should_compile(File* objfile){
 		//this will be implemented later for the lock file system
-		std::string inputName=objfile->data.inputPath;
+		std::string inputName=objfile->data.inputPath.string();
 		//basically checks if it exists AND is equal inside the dear lockfilemgr
 		if (lockfilemgr.file_exists(inputName)){
 			if (*objfile==*lockfilemgr.files.at(inputName)){
