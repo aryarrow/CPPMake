@@ -1,6 +1,11 @@
-#e al lui nix
+#nix's stuff
 ./result
 result
 result-*
-#nu fortez dependency-uri
-./flake.lock
+#shi
+./build
+./build/*
+build
+./incremental.lock
+./a.out
+

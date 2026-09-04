@@ -1,45 +1,34 @@
 #include <cassert>
 #include <iostream>
-#include "src/commondata.hpp"
-#include "src/cppmake.hpp"
+#include <filesystem>
+#include <vector>
+#ifndef CPPMake_impl
+#define CPPMake_impl
+#endif
+#include "./src/cppmake.cpp"
+
 
 
 int main(int argc, char* argv[]){
-	//since this entire project is a library i couldve literally used a recursive_directory_iterator to header all of them :D
 	project CPPMake;
-	//for filetype
-	File filedata("./src/filetypes/filedata.hpp","filetypes/filedata.hpp",File::FileType::Header);
-	File universalfile("./src/filetypes/universalfile.hpp","filetypes/universalfile.hpp",File::FileType::Header);
-	File sha256("./src/filetypes/sha256.hpp","filetypes/sha256.hpp",File::FileType::Header);
+	std::vector<File> headers;
+	//lets steal the headers
+	namespace fs=std::filesystem;
+	for (const auto& file:fs::recursive_directory_iterator{"./src"}){
+		fs::path relativePath=file.path().lexically_relative("./src");
+		if (relativePath.extension().string()==".h"){
+			File temporary(file.path().string(),relativePath.string(),File::FileType::Header);
+			headers.push_back(temporary);
+		}
+	}
+	for (auto const& i:headers){
+		CPPMake.add_file(i);
+	}
+	//okay now create the shared library
+	File sharedlib("./src/cppmake.cpp","libcppmake.so",File::FileType::Sharedlib);
+	CPPMake.add_file(sharedlib);
 
-	//root
-	File cppmake("./src/cppmake.hpp","cppmake.hpp",File::FileType::Header);
-	File commondata("./src/commondata.hpp","commondata.hpp",File::FileType::Header);
-	File lockmgr("./src/lockfilemgr.cpp","lockfilemgr.cpp",File::FileType::Header);
-	File GDBbreakpoint("./src/breakpoint.cpp","breakpoint.cpp",File::FileType::Header);
-	//lockfilesys
-	File locktokens("./src/lockfilesys/tokens.cpp","lockfilesys/tokens.cpp",File::FileType::Header);
-	File locktokenizer("./src/lockfilesys/tokenizer.cpp","lockfilesys/tokenizer.cpp",File::FileType::Header);
-	File lockparser("./src/lockfilesys/locker.cpp","lockfilesys/locker.cpp",File::FileType::Header);
-	File lockvariables("./src/lockfilesys/variables.cpp","lockfilesys/variables.cpp",File::FileType::Header);
-
-	auto pushFile=[&CPPMake](File &file_to_push){
-		CPPMake.add_file(&file_to_push);
-	};
-	pushFile(filedata);
-	pushFile(universalfile);
-	pushFile(sha256);
-
-	pushFile(cppmake);
-	pushFile(commondata);
-	pushFile(lockmgr);
-	pushFile(GDBbreakpoint);
-
-	pushFile(locktokens);
-	pushFile(locktokenizer);
-	pushFile(lockparser);
-	pushFile(lockvariables);
-
+	CPPMake.compile_executables();
 	CPPMake.preinstall();
 	return 0;
 }

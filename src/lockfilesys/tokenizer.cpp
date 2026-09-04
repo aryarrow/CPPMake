@@ -1,4 +1,8 @@
 #pragma once
+#ifdef CPPMake_impl
+#include "tokens.cpp"
+#endif
+
 #include <cctype>
 #include <filesystem>
 #include <fstream>
@@ -7,42 +11,39 @@
 #include <utility>
 #include <vector>
 #include <string>
-#include "tokens.cpp"
+#include "tokens.h"
 #include <iostream>
-class Tokenizer {
-public:
-	std::vector<std::string> tokens;
-	std::vector<Token> token_id;
+#include "tokenizer.h"
 
-	void print_all_tokens(){
-		for (size_t i=0;i<tokens.size();++i){
+void Tokenizer::print_all_tokens(){
+	for (size_t i=0;i<tokens.size();++i){
 			std::cout<<tokens[i]<<":"<<token_id[i]<<"\n";
-		}
 	}
+}
+Tokenizer::Tokenizer(const std::string& filename){
+	namespace fs=std::filesystem;
+	fs::path file=fs::path(filename);//only doing ts because of windows
+	//who cant take an std::string instead of std::path like linux can :D
+	if (!fs::exists(file)){
+		throw std::runtime_error("File not found:"+filename);
+	}
+	if (!fs::is_regular_file(file)){
+		throw std::runtime_error("File is not a regular file:"+filename);
+	}
+	std::ifstream fin(filename);//almost wrote "filename" instead of filename 
+	//because of muscle memory
+	if (!fin){
+		throw std::runtime_error("Failed to open file:"+filename);
+	}
+	std::string text;
+	std::stringstream text_buffer;
+	text_buffer<<fin.rdbuf();
+	text=text_buffer.str();
+	tokenize(text);
+}
 
-	Tokenizer(const std::string& filename){
-		namespace fs=std::filesystem;
-		fs::path file=fs::path(filename);//only doing ts because of windows
-		//who cant take an std::string instead of std::path like linux can :D
-		if (!fs::exists(file)){
-			throw std::runtime_error("File not found:"+filename);
-		}
-		if (!fs::is_regular_file(file)){
-			throw std::runtime_error("File is not a regular file:"+filename);
-		}
-		std::ifstream fin(filename);//almost wrote "filename" instead of filename 
-		//because of muscle memory
-		if (!fin){
-			throw std::runtime_error("Failed to open file:"+filename);
-		}
-		std::string text;
-		std::stringstream text_buffer;
-		text_buffer<<fin.rdbuf();
-		text=text_buffer.str();
-		tokenize(text);
-	}
-private:
-	void tokenize(const std::string& text){
+
+	void Tokenizer::tokenize(const std::string& text){
 		for (std::size_t i=0;i<text.size();++i){
 			char ch=text[i];
 			std::string remember;
@@ -133,5 +134,3 @@ private:
 			}
 		}
 	}
-
-};

@@ -1,3 +1,5 @@
+//this one can be used for both header and literally as a c++ file cause it has a bunch of hard coded data...
+
 #pragma once
 #include <string>
 

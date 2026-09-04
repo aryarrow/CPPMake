@@ -1,4 +1,14 @@
 #pragma once
+
+#include "filetypes/universalfile.h"
+#include "lockfilesys/locker.h"
+#ifdef CPPMake_impl
+#include "filetypes/universalfile.hpp"
+#include "lockfilesys/locker.cpp"
+
+#endif
+#include "lockfilemgr.h"
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -8,40 +18,10 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "filetypes/universalfile.hpp"
-#include "lockfilesys/locker.cpp"
-
-
 //TODO:Move instances of lockfile_name in compilerVariables because it's common data between 3 f-ing classes
-
-
-class lockfile_reader{
-public:
-	//TODO:trasform these 2 variables from below into pointers
-	std::unordered_map<std::string, std::shared_ptr<File>> &files;
-	std::vector<std::shared_ptr<File>> &object_dummies;
-	
-	/*lockfile_reader(std::unordered_map<std::string,File> &construct_files,std::vector<std::shared_ptr<File>> &construct_object_dummies):
-	files(construct_files),
-	object_dummies(construct_object_dummies)
-	{
-		locker.parse_lock_file();
-		construct_files_from_lockfiles();
-	}*/
-
-	lockfile_reader(
-        std::unordered_map<std::string, std::shared_ptr<File>>& construct_files,
-        std::vector<std::shared_ptr<File>>& construct_object_dummies
-    ) : files(construct_files), object_dummies(construct_object_dummies) {
-        locker.parse_lock_file();
-        construct_files_from_lockfiles();
-    }
-
-private:
-	lockfile locker;
 	
 
-	void construct_files_from_lockfiles(){
+	void lockfile_reader::construct_files_from_lockfile(){
 		//first im getting the objects, from the lockfile
 		//this is because if i actually want to use this
 		for(auto& i:locker.mainVar->as<variable::object>()){
@@ -62,8 +42,8 @@ private:
 		//NOTE:Horrible performance because im going through the files twice
 		//TODO:optimize this function
 	}
-	void construct_from_lockfile(const std::string& filename) {
-        auto file_construct = std::make_shared<File>(filename, "none", File::FileType::Executable);
+	void lockfile_reader::construct_from_lockfile(const std::string& filename) {
+        auto file_construct = std::make_shared<File>(filename, "none", File::FileType::Object);
         file_construct->data.inputPath = filename;
         file_construct->data.outputName = locker.mainVar->get(filename)->get("outputName")->as<std::string>();
 
@@ -97,7 +77,9 @@ private:
 
         for (auto& i : locker.mainVar->get(filename)->get("dependencies")->as<variable::list>()) {
             std::string dependency_filename = i->as<std::string>();
-            file_construct->add_dependency(search_ptr(dependency_filename));
+            if (dependency_filename != filename){//this skips the self dependency
+				file_construct->add_dependency(*search_ptr(dependency_filename));
+			}
         }
 
         if (file_construct->type == File::FileType::Object) {
@@ -108,11 +90,7 @@ private:
 
         files.insert_or_assign(filename, file_construct);
     }
-};
-
-class lockfile_writer{
-public:
-	lockfile_writer(const std::string& construct_lockfile_name):lockfile_name(construct_lockfile_name){
+	lockfile_writer::lockfile_writer(const std::string& construct_lockfile_name):lockfile_name(construct_lockfile_name){
 		lockfile_stream=std::ofstream(lockfile_name);
 		if (!lockfile_stream){
 			throw std::runtime_error("Failed to create lockfile writer");
@@ -121,7 +99,7 @@ public:
 		lockfile_stream<<"{\n";
 		depth++;
 	}
-	lockfile_writer& operator<<(File* file){
+	lockfile_writer& lockfile_writer::operator<<(File* file){
 		//file->data ofc
 		//file->dependencies this will be a list with inputNames from file->dependencies[i]->inputpath
 		//file->type somehow needs to be stored but its an enum class
@@ -179,44 +157,33 @@ public:
 		lockfile_stream<<"}\n";
 		return *this;
 	}
-	~lockfile_writer(){
+	lockfile_writer::~lockfile_writer(){
 		//end the file }
 		lockfile_stream<<"}";
 	}
-private:
-	int depth=0;
-	std::string lockfile_name;
-	std::ofstream lockfile_stream;
-	void add_tabs(){
+	void lockfile_writer::add_tabs(){
 		for (int i=0;i<depth;++i) {
 			lockfile_stream<<"\t";
 		}
 	}
-};
 
-class lockfile_mgr {
-public:
-    // Store shared_ptrs so pointers remain stable during map growth
-    std::unordered_map<std::string, std::shared_ptr<File>> files;
-    std::vector<std::shared_ptr<File>> object_dummies;
 
-    void update_file(File& fileToUpdate) {
+    void lockfile_mgr::update_file(File& fileToUpdate) {
         auto sharedFile = std::make_shared<File>(fileToUpdate);
         files.insert_or_assign(fileToUpdate.data.inputPath.string(), sharedFile);
 	}
 
-    bool file_exists(const std::string& filename) {
+    bool lockfile_mgr::file_exists(const std::string& filename) {
         return files.find(filename) != files.end();
     }
 
-    void update_variables_from_lockfile() {
+    void lockfile_mgr::update_variables_from_lockfile() {
         lockfile_reader lock_read(files, object_dummies);
     }
 
-    void write_lockfile_changes() {
+    void lockfile_mgr::write_lockfile_changes() {
         lockfile_writer lock_write("incremental.lock");
         for (auto& i : files) {
 			lock_write << i.second.get();
         }
     }
-};
