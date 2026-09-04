@@ -58,15 +58,31 @@ File::File(std::filesystem::path inputPath, std::string outputName,FileType fTyp
 //TODO:once adding the compiler class change these based on the compiler
 void File::add_flag(const std::string& flag){
 	this->data.flags.push_back(flag);
+	if (!this->selfDependency.get()){
+		return;
+	}
+	this->selfDependency->add_flag(flag);
 }
 void File::add_library(const std::string& library){
 	this->data.flags.push_back("-l"+library);
+	if (!this->selfDependency.get()){
+		return;
+	}
+	this->selfDependency->add_flag("-l"+library);
 }
 void File::add_library_directory(const std::filesystem::path& library){
 	this->data.flags.push_back("-L"+library.string());
+	if (!this->selfDependency.get()){
+		return;
+	}
+	this->selfDependency->add_flag("-L"+library.string());
 }
 void File::add_include_directory(const std::filesystem::path& path){
 	this->data.flags.push_back("-I"+path.string());
+	if (!this->selfDependency.get()){
+		return;
+	}
+	this->selfDependency->add_flag("-I"+path.string());
 }
 
 bool File::operator==(const File& other) const {

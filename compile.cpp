@@ -24,8 +24,12 @@ int main(int argc, char* argv[]){
 	for (auto const& i:headers){
 		CPPMake.add_file(i);
 	}
+	//this one doesnt have .h so he has to be implemented directly	
+	File commondata("./src/commondata.hpp","commondata.hpp",File::FileType::Header);
+	CPPMake.add_file(commondata);
 	//okay now create the shared library
 	File sharedlib("./src/cppmake.cpp","libcppmake.so",File::FileType::Sharedlib);
+	sharedlib.add_flag("-DCPPMake_impl");
 	CPPMake.add_file(sharedlib);
 
 	CPPMake.compile_executables();

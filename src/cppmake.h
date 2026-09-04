@@ -3,6 +3,7 @@
 #include <vector>
 #include "./filetypes/universalfile.h"
 #include "./lockfilemgr.h"
+#include "./commondata.hpp"
 //TODO:instead of all these functions, create void build(); and void preinstall();
 //TODO:private the compile_executable() and compile_shared() functions
 //TODO:add a compiler class for this to change with an enum class instead of an std::string

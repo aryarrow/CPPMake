@@ -26,10 +26,8 @@
 							CPPMake.packages.${system}.default
 						];
 						buildPhase=''
-							pwd
-							find . -maxdepth 3 -type f
 							clang++ compile.cpp -o compile
-							clang++ install.cpp -o install
+							clang++ install.cpp -o install 
 							./compile
 						'';
 						installPhase=''

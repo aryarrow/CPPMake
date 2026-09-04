@@ -107,7 +107,6 @@ void project::compile_executable(std::shared_ptr<File> file){
 	std::string command=compiler+" "
 		+add_up_flags(file)+" "
 		+objfiles+" "+quoted(file->selfDependency->data.outputPath.string())+" "
-		+quoted(file->data.inputPath.string())+" "
 		+"-o " + quoted(file->data.outputPath.string());
 
 	compile_object(file->selfDependency,false);
@@ -193,7 +192,7 @@ void project::copy_shared_preinstall(std::shared_ptr<File> shared){
 	fs::path outputShared=libdir/shared->data.outputName;
 	fs::create_directories(libdir);
 
-	fs::copy_file(shared->data.inputPath,
+	fs::copy_file(shared->data.outputPath,
 			   outputShared,
 			   fs::copy_options::overwrite_existing
 	);
